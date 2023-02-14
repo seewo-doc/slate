@@ -1261,8 +1261,6 @@ export const Editable = (props: EditableProps) => {
                   const range = ReactEditor.findEventRange(editor, event)
                   const data = event.dataTransfer
 
-                  Transforms.select(editor, range)
-
                   if (state.isDraggingInternally) {
                     if (
                       draggedRange &&
@@ -1274,6 +1272,8 @@ export const Editable = (props: EditableProps) => {
                       })
                     }
                   }
+
+                  Transforms.select(editor, range)
 
                   ReactEditor.insertData(editor, data)
 
