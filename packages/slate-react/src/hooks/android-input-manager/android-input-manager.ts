@@ -462,9 +462,9 @@ export function createAndroidInputManager({
           })
         }
 
-        return scheduleAction(() => Editor.deleteBackward(editor), {
-          at: targetRange,
-        })
+        scheduleFlush()
+        Editor.deleteBackward(editor)
+        return
       }
 
       case 'deleteEntireSoftLine': {
@@ -526,9 +526,9 @@ export function createAndroidInputManager({
       }
 
       case 'insertParagraph': {
-        return scheduleAction(() => Editor.insertBreak(editor), {
-          at: targetRange,
-        })
+        scheduleFlush()
+        Editor.insertBreak(editor)
+        return
       }
       case 'insertCompositionText':
       case 'deleteCompositionText':
