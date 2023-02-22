@@ -367,7 +367,7 @@ export function createAndroidInputManager({
         const closestElement = nativeTargetRange.startContainer.parentElement.closest(
           '[data-slate-node=element]'
         )
-        inVoidNode = closestElement?.attributes.hasOwnProperty(
+        inVoidNode = !!closestElement?.attributes.hasOwnProperty(
           'data-slate-void'
         )
       }
@@ -590,6 +590,11 @@ export function createAndroidInputManager({
             start: start.offset,
             end: end.offset,
             text,
+          }
+
+          if (targetRange.anchor.offset < 0) {
+            Editor.insertText(editor, text)
+            return
           }
 
           // COMPAT: Swiftkey has a weird bug where the target range of the 2nd word
