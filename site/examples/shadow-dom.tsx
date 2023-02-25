@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom'
 import React, { useMemo, useRef, useEffect } from 'react'
 import { createEditor, Descendant } from 'slate'
-import { Slate, Editable, withReact } from 'slate-react'
+import { Slate, Editable, withReact } from '@seewo-doc/slate-react'
 import { withHistory } from 'slate-history'
 
 const ShadowDOM = () => {

@@ -8,7 +8,7 @@ import {
   withReact,
   useSelected,
   useFocused,
-} from 'slate-react'
+} from '@seewo-doc/slate-react'
 
 import { Portal } from '../components'
 import { MentionElement } from './custom-types'

@@ -10,7 +10,7 @@ import {
   Transforms,
 } from 'slate'
 import { withHistory } from 'slate-history'
-import { Editable, ReactEditor, Slate, withReact } from 'slate-react'
+import { Editable, ReactEditor, Slate, withReact } from '@seewo-doc/slate-react'
 import { BulletedListElement } from './custom-types'
 
 const SHORTCUTS = {
@@ -50,7 +50,7 @@ const MarkdownShortcutsExample = () => {
 
         const blockEntry = Editor.above(editor, {
           at: path,
-          match: n => Editor.isBlock(editor, n),
+          match: n => SlateElement.isElement(n) && Editor.isBlock(editor, n),
         })
         if (!blockEntry) {
           return false
@@ -88,7 +88,7 @@ const withShortcuts = editor => {
     if (text.endsWith(' ') && selection && Range.isCollapsed(selection)) {
       const { anchor } = selection
       const block = Editor.above(editor, {
-        match: n => Editor.isBlock(editor, n),
+        match: n => SlateElement.isElement(n) && Editor.isBlock(editor, n),
       })
       const path = block ? block[1] : []
       const start = Editor.start(editor, path)
@@ -107,7 +107,7 @@ const withShortcuts = editor => {
           type,
         }
         Transforms.setNodes<SlateElement>(editor, newProperties, {
-          match: n => Editor.isBlock(editor, n),
+          match: n => SlateElement.isElement(n) && Editor.isBlock(editor, n),
         })
 
         if (type === 'list-item') {
@@ -135,7 +135,7 @@ const withShortcuts = editor => {
 
     if (selection && Range.isCollapsed(selection)) {
       const match = Editor.above(editor, {
-        match: n => Editor.isBlock(editor, n),
+        match: n => SlateElement.isElement(n) && Editor.isBlock(editor, n),
       })
 
       if (match) {

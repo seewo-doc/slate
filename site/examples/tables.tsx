@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { Slate, Editable, withReact } from 'slate-react'
+import { Slate, Editable, withReact } from '@seewo-doc/slate-react'
 import {
   Editor,
   Range,

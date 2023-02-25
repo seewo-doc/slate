@@ -2,6 +2,7 @@ import ReactDOM from 'react-dom'
 import {
   BaseEditor,
   Editor,
+  Element,
   Node,
   Operation,
   Path,
@@ -27,14 +28,15 @@ import {
   EDITOR_TO_ON_CHANGE,
   EDITOR_TO_PENDING_ACTION,
   EDITOR_TO_PENDING_DIFFS,
+  EDITOR_TO_PENDING_INSERTION_MARKS,
   EDITOR_TO_PENDING_SELECTION,
+  EDITOR_TO_SCHEDULE_FLUSH,
   EDITOR_TO_USER_MARKS,
   EDITOR_TO_USER_SELECTION,
   NODE_TO_KEY,
-  EDITOR_TO_SCHEDULE_FLUSH,
-  EDITOR_TO_PENDING_INSERTION_MARKS,
 } from '../utils/weak-maps'
 import { ReactEditor } from './react-editor'
+
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
  *
@@ -44,7 +46,10 @@ import { ReactEditor } from './react-editor'
  * See https://docs.slatejs.org/concepts/11-typescript to learn how.
  */
 
-export const withReact = <T extends BaseEditor>(editor: T): T & ReactEditor => {
+export const withReact = <T extends BaseEditor>(
+  editor: T,
+  clipboardFormatKey = 'x-slate-fragment'
+): T & ReactEditor => {
   const e = editor as T & ReactEditor
   const { apply, onChange, deleteBackward, addMark, removeMark } = e
 
@@ -91,7 +96,7 @@ export const withReact = <T extends BaseEditor>(editor: T): T & ReactEditor => {
 
     if (e.selection && Range.isCollapsed(e.selection)) {
       const parentBlockEntry = Editor.above(e, {
-        match: n => Editor.isBlock(e, n),
+        match: n => Element.isElement(n) && Editor.isBlock(e, n),
         at: e.selection,
       })
 
@@ -262,7 +267,7 @@ export const withReact = <T extends BaseEditor>(editor: T): T & ReactEditor => {
     const string = JSON.stringify(fragment)
     const encoded = window.btoa(encodeURIComponent(string))
     attach.setAttribute('data-slate-fragment', encoded)
-    data.setData('application/x-slate-fragment', encoded)
+    data.setData(`application/${clipboardFormatKey}`, encoded)
 
     // Add the content to a <div> so that we can get its inner HTML.
     const div = contents.ownerDocument.createElement('div')
@@ -286,7 +291,7 @@ export const withReact = <T extends BaseEditor>(editor: T): T & ReactEditor => {
      * Checking copied fragment from application/x-slate-fragment or data-slate-fragment
      */
     const fragment =
-      data.getData('application/x-slate-fragment') ||
+      data.getData(`application/${clipboardFormatKey}`) ||
       getSlateFragmentAttribute(data)
 
     if (fragment) {
@@ -318,7 +323,7 @@ export const withReact = <T extends BaseEditor>(editor: T): T & ReactEditor => {
     return false
   }
 
-  e.onChange = () => {
+  e.onChange = options => {
     // COMPAT: React doesn't batch `setState` hook calls, which means that the
     // children and selection can get out of sync for one render pass. So we
     // have to use this unstable API to ensure it batches them. (2019/12/03)
@@ -330,7 +335,7 @@ export const withReact = <T extends BaseEditor>(editor: T): T & ReactEditor => {
         onContextChange()
       }
 
-      onChange()
+      onChange(options)
     })
   }
 

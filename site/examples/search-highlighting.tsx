@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react'
-import { Slate, Editable, withReact } from 'slate-react'
+import { Slate, Editable, withReact } from '@seewo-doc/slate-react'
 import { Text, Descendant, createEditor } from 'slate'
 import { css } from '@emotion/css'
 import { withHistory } from 'slate-history'

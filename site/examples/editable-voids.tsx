@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react'
 import { Transforms, createEditor, Descendant } from 'slate'
-import { Slate, Editable, useSlateStatic, withReact } from 'slate-react'
+import {
+  Slate,
+  Editable,
+  useSlateStatic,
+  withReact,
+} from '@seewo-doc/slate-react'
 import { withHistory } from 'slate-history'
 import { css } from '@emotion/css'
 

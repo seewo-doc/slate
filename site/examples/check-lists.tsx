@@ -6,7 +6,7 @@ import {
   useSlateStatic,
   useReadOnly,
   ReactEditor,
-} from 'slate-react'
+} from '@seewo-doc/slate-react'
 import {
   Editor,
   Transforms,

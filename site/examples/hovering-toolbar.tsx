@@ -1,5 +1,11 @@
 import React, { useMemo, useRef, useEffect } from 'react'
-import { Slate, Editable, withReact, useSlate, useFocused } from 'slate-react'
+import {
+  Slate,
+  Editable,
+  withReact,
+  useSlate,
+  useFocused,
+} from '@seewo-doc/slate-react'
 import {
   Editor,
   Transforms,

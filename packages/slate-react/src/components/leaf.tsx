@@ -1,10 +1,11 @@
 import React, { useRef, useEffect } from 'react'
 import { Element, Text } from 'slate'
+import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer'
 import String from './string'
 import {
   PLACEHOLDER_SYMBOL,
   EDITOR_TO_PLACEHOLDER_ELEMENT,
-  EDITOR_TO_STYLE_ELEMENT,
+  EDITOR_TO_FORCE_RENDER,
 } from '../utils/weak-maps'
 import { RenderLeafProps, RenderPlaceholderProps } from './editable'
 import { useSlateStatic } from '../hooks/use-slate-static'
@@ -30,6 +31,7 @@ const Leaf = (props: {
     renderLeaf = (props: RenderLeafProps) => <DefaultLeaf {...props} />,
   } = props
 
+  const lastPlaceholderRef = useRef<HTMLSpanElement | null>(null)
   const placeholderRef = useRef<HTMLSpanElement | null>(null)
   const editor = useSlateStatic()
 
@@ -59,26 +61,24 @@ const Leaf = (props: {
         placeholderResizeObserver.current.observe(placeholderEl)
     } else if (placeholderEl) {
       // Create a new observer and observe the placeholder element.
-      placeholderResizeObserver.current = new ResizeObserver(([{ target }]) => {
-        const styleElement = EDITOR_TO_STYLE_ELEMENT.get(editor)
-        if (styleElement) {
-          // Make the min-height the height of the placeholder.
-          const minHeight = `${target.clientHeight}px`
-          styleElement.innerHTML = `:where([data-slate-editor-id="${editor.id}"]) { min-height: ${minHeight}; }`
-        }
+      const ResizeObserver = window.ResizeObserver || ResizeObserverPolyfill
+      placeholderResizeObserver.current = new ResizeObserver(() => {
+        // Force a re-render of the editor so its min-height can be updated
+        // to the new height of the placeholder.
+        const forceRender = EDITOR_TO_FORCE_RENDER.get(editor)
+        forceRender?.()
       })
-
       placeholderResizeObserver.current.observe(placeholderEl)
     }
 
-    if (!placeholderEl) {
+    if (!placeholderEl && lastPlaceholderRef.current) {
       // No placeholder element, so no need for a resize observer.
-      const styleElement = EDITOR_TO_STYLE_ELEMENT.get(editor)
-      if (styleElement) {
-        // No min-height if there is no placeholder.
-        styleElement.innerHTML = ''
-      }
+      // Force a re-render of the editor so its min-height can be reset.
+      const forceRender = EDITOR_TO_FORCE_RENDER.get(editor)
+      forceRender?.()
     }
+
+    lastPlaceholderRef.current = placeholderRef.current
 
     return () => {
       EDITOR_TO_PLACEHOLDER_ELEMENT.delete(editor)

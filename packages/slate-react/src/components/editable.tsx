@@ -45,7 +45,6 @@ import {
   IS_FIREFOX,
   IS_FIREFOX_LEGACY,
   IS_IOS,
-  IS_QQBROWSER,
   IS_SAFARI,
   IS_UC_MOBILE,
   IS_WECHATBROWSER,
@@ -55,7 +54,7 @@ import {
   EDITOR_TO_ELEMENT,
   EDITOR_TO_FORCE_RENDER,
   EDITOR_TO_PENDING_INSERTION_MARKS,
-  EDITOR_TO_STYLE_ELEMENT,
+  EDITOR_TO_PLACEHOLDER_ELEMENT,
   EDITOR_TO_USER_MARKS,
   EDITOR_TO_USER_SELECTION,
   EDITOR_TO_WINDOW,
@@ -76,9 +75,6 @@ type DeferredOperation = () => void
 const Children = (props: Parameters<typeof useChildren>[0]) => (
   <React.Fragment>{useChildren(props)}</React.Fragment>
 )
-
-// The number of Editable components currently mounted.
-let mountedCount = 0
 
 /**
  * `RenderElementProps` are passed to the `renderElement` handler.
@@ -125,6 +121,7 @@ export type EditableProps = {
   renderPlaceholder?: (props: RenderPlaceholderProps) => JSX.Element
   scrollSelectionIntoView?: (editor: ReactEditor, domRange: DOMRange) => void
   as?: React.ElementType
+  disableDefaultStyles?: boolean
 } & React.TextareaHTMLAttributes<HTMLDivElement>
 
 /**
@@ -142,14 +139,15 @@ export const Editable = (props: EditableProps) => {
     renderLeaf,
     renderPlaceholder = props => <DefaultPlaceholder {...props} />,
     scrollSelectionIntoView = defaultScrollSelectionIntoView,
-    style = {},
+    style: userStyle = {},
     as: Component = 'div',
+    disableDefaultStyles = false,
     ...attributes
   } = props
   const editor = useSlate()
   // Rerender editor when composition status changed
   const [isComposing, setIsComposing] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLDivElement | null>(null)
   const deferredOperations = useRef<DeferredOperation[]>([])
 
   const { onUserInput, receivedUserInput } = useTrackUserInput()
@@ -522,7 +520,7 @@ export const Editable = (props: EditableProps) => {
           ) {
             const block = Editor.above(editor, {
               at: anchor.path,
-              match: n => Editor.isBlock(editor, n),
+              match: n => Element.isElement(n) && Editor.isBlock(editor, n),
             })
 
             if (block && Node.string(block[0]).includes('\t')) {
@@ -700,23 +698,31 @@ export const Editable = (props: EditableProps) => {
     [readOnly, propsOnDOMBeforeInput]
   )
 
-  // Attach a native DOM event handler for `beforeinput` events, because React's
-  // built-in `onBeforeInput` is actually a leaky polyfill that doesn't expose
-  // real `beforeinput` events sadly... (2019/11/04)
-  // https://github.com/facebook/react/issues/11211
-  useIsomorphicLayoutEffect(() => {
-    if (ref.current && HAS_BEFORE_INPUT_SUPPORT) {
-      // @ts-ignore The `beforeinput` event isn't recognized.
-      ref.current.addEventListener('beforeinput', onDOMBeforeInput)
-    }
+  const callbackRef = useCallback(
+    node => {
+      if (node == null) {
+        EDITOR_TO_ELEMENT.delete(editor)
+        NODE_TO_ELEMENT.delete(editor)
 
-    return () => {
-      if (ref.current && HAS_BEFORE_INPUT_SUPPORT) {
-        // @ts-ignore The `beforeinput` event isn't recognized.
-        ref.current.removeEventListener('beforeinput', onDOMBeforeInput)
+        if (ref.current && HAS_BEFORE_INPUT_SUPPORT) {
+          // @ts-ignore The `beforeinput` event isn't recognized.
+          ref.current.removeEventListener('beforeinput', onDOMBeforeInput)
+        }
+      } else {
+        // Attach a native DOM event handler for `beforeinput` events, because React's
+        // built-in `onBeforeInput` is actually a leaky polyfill that doesn't expose
+        // real `beforeinput` events sadly... (2019/11/04)
+        // https://github.com/facebook/react/issues/11211
+        if (HAS_BEFORE_INPUT_SUPPORT) {
+          // @ts-ignore The `beforeinput` event isn't recognized.
+          node.addEventListener('beforeinput', onDOMBeforeInput)
+        }
       }
-    }
-  }, [onDOMBeforeInput])
+
+      ref.current = node
+    },
+    [ref, onDOMBeforeInput]
+  )
 
   // Attach a native DOM event handler for `selectionchange`, because React's
   // built-in `onSelect` handler doesn't fire for all selection changes. It's a
@@ -806,45 +812,9 @@ export const Editable = (props: EditableProps) => {
     })
   })
 
-  useEffect(() => {
-    mountedCount++
-
-    if (mountedCount === 1) {
-      // Set global default styles for editors.
-      const defaultStylesElement = document.createElement('style')
-      defaultStylesElement.setAttribute('data-slate-default-styles', 'true')
-      defaultStylesElement.innerHTML =
-        // :where is used to give these rules lower specificity so user stylesheets can override them.
-        `:where([data-slate-editor]) {` +
-        // Allow positioning relative to the editable element.
-        `position: relative;` +
-        // Prevent the default outline styles.
-        `outline: none;` +
-        // Preserve adjacent whitespace and new lines.
-        `white-space: pre-wrap;` +
-        // Allow words to break if they are too long.
-        `word-wrap: break-word;` +
-        `}`
-      document.head.appendChild(defaultStylesElement)
-    }
-
-    return () => {
-      mountedCount--
-
-      if (mountedCount <= 0)
-        document.querySelector('style[data-slate-default-styles]')?.remove()
-    }
-  }, [])
-
-  useEffect(() => {
-    const styleElement = document.createElement('style')
-    document.head.appendChild(styleElement)
-    EDITOR_TO_STYLE_ELEMENT.set(editor, styleElement)
-    return () => {
-      styleElement.remove()
-      EDITOR_TO_STYLE_ELEMENT.delete(editor)
-    }
-  }, [])
+  const placeholderHeight = EDITOR_TO_PLACEHOLDER_ELEMENT.get(
+    editor
+  )?.getBoundingClientRect()?.height
 
   return (
     <ReadOnlyContext.Provider value={readOnly}>
@@ -875,7 +845,6 @@ export const Editable = (props: EditableProps) => {
                 : 'false'
             }
             data-slate-editor
-            data-slate-editor-id={editor.id}
             data-slate-node="value"
             // explicitly set this
             contentEditable={!readOnly}
@@ -884,8 +853,27 @@ export const Editable = (props: EditableProps) => {
             // this magic zIndex="-1" will fix it
             zindex={-1}
             suppressContentEditableWarning
-            ref={ref}
-            style={style}
+            ref={callbackRef}
+            style={{
+              ...(disableDefaultStyles
+                ? {}
+                : {
+                    // Allow positioning relative to the editable element.
+                    position: 'relative',
+                    // Prevent the default outline styles.
+                    outline: 'none',
+                    // Preserve adjacent whitespace and new lines.
+                    whiteSpace: 'pre-wrap',
+                    // Allow words to break if they are too long.
+                    wordWrap: 'break-word',
+                    // Make the minimum height that of the placeholder.
+                    ...(placeholderHeight
+                      ? { minHeight: placeholderHeight }
+                      : {}),
+                  }),
+              // Allow for passed-in styles to override anything.
+              ...userStyle,
+            }}
             onBeforeInput={useCallback(
               (event: React.FormEvent<HTMLDivElement>) => {
                 // COMPAT: Certain browsers don't support the `beforeinput` event, so we
@@ -1010,9 +998,12 @@ export const Editable = (props: EditableProps) => {
 
                   if (event.detail === TRIPLE_CLICK && path.length >= 1) {
                     let blockPath = path
-                    if (!Editor.isBlock(editor, node)) {
+                    if (
+                      !(Element.isElement(node) && Editor.isBlock(editor, node))
+                    ) {
                       const block = Editor.above(editor, {
-                        match: n => Editor.isBlock(editor, n),
+                        match: n =>
+                          Element.isElement(n) && Editor.isBlock(editor, n),
                         at: path,
                       })
 
@@ -1070,7 +1061,6 @@ export const Editable = (props: EditableProps) => {
                     !IS_SAFARI &&
                     !IS_FIREFOX_LEGACY &&
                     !IS_IOS &&
-                    !IS_QQBROWSER &&
                     !IS_WECHATBROWSER &&
                     !IS_UC_MOBILE &&
                     event.data
@@ -1133,7 +1123,8 @@ export const Editable = (props: EditableProps) => {
                       return
                     }
                     const inline = Editor.above(editor, {
-                      match: n => Editor.isInline(editor, n),
+                      match: n =>
+                        Element.isElement(n) && Editor.isInline(editor, n),
                       mode: 'highest',
                     })
                     if (inline) {
@@ -1207,7 +1198,7 @@ export const Editable = (props: EditableProps) => {
                   // default, and calling `preventDefault` hides the cursor.
                   const node = ReactEditor.toSlateNode(editor, event.target)
 
-                  if (Editor.isVoid(editor, node)) {
+                  if (Element.isElement(node) && Editor.isVoid(editor, node)) {
                     event.preventDefault()
                   }
                 }
@@ -1224,7 +1215,7 @@ export const Editable = (props: EditableProps) => {
                   const node = ReactEditor.toSlateNode(editor, event.target)
                   const path = ReactEditor.findPath(editor, node)
                   const voidMatch =
-                    Editor.isVoid(editor, node) ||
+                    (Element.isElement(node) && Editor.isVoid(editor, node)) ||
                     Editor.void(editor, { at: path, voids: true })
 
                   // If starting a drag on a void node, make sure it is selected
@@ -1610,7 +1601,7 @@ export const Editable = (props: EditableProps) => {
               (event: React.ClipboardEvent<HTMLDivElement>) => {
                 if (
                   !readOnly &&
-                  ReactEditor.hasSelectableTarget(editor, event.target) &&
+                  ReactEditor.hasEditableTarget(editor, event.target) &&
                   !isEventHandled(event, attributes.onPaste)
                 ) {
                   // COMPAT: Certain browsers don't support the `beforeinput` event, so we

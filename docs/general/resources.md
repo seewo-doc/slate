@@ -44,6 +44,7 @@ These products use Slate, and can give you an idea of what's possible:
 - [Sana](https://www.sanalabs.com): Reimagining learning with AI [LMS]
 - [Sanity.io](https://www.sanity.io/): Platform for structured content [data driven content]
 - [Slite](https://slite.com/): Where remote teams make decisions and share knowledge
+- [Static CMS](https://www.staticcms.org/): Git-based CMS for Static Site Generators
 - [Taskade](https://www.taskade.com/): Get work done in one unified workspace
 - [TRPG Engine](https://trpg.moonrailgun.com/)
 - [Thoughts](https://thoughts.teambition.com/)
@@ -61,5 +62,6 @@ These pre-packaged editors are built on top of Slate, and can be helpful to see 
 - [React Force Slate Editor](https://github.com/nareshbhatia/react-force/tree/master/packages/slate-editor) is a light-weight medium-style editor with no editor chrome.
 - [React Page](https://github.com/react-page/react-page) is a self-contained, customizable inline WYSIWYG editor library.
 - [Slate Plugins Next](https://github.com/zbeyens/slate-plugins-next) provides an editor with configurable and extendable plugins.
+- [Tripdocs](https://github.com/ctripcorp/tripdocs): It's a modern, production-ready rich text editor.
 
 \(Or, if you have their exact use case, can be a drop-in editor for you.\)

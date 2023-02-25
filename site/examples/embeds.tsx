@@ -11,7 +11,7 @@ import {
   withReact,
   useSlateStatic,
   ReactEditor,
-} from 'slate-react'
+} from '@seewo-doc/slate-react'
 
 const EmbedsExample = () => {
   const editor = useMemo(() => withEmbeds(withReact(createEditor())), [])

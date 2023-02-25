@@ -3,7 +3,6 @@ import {
   Editor,
   Element,
   Node,
-  NodeEntry,
   Operation,
   Path,
   PathRef,
@@ -13,10 +12,8 @@ import {
   Text,
   Transforms,
 } from './'
-import { DIRTY_PATHS, DIRTY_PATH_KEYS, FLUSHING } from './utils/weak-maps'
 import { TextUnit } from './interfaces/types'
-
-let nextEditorId = 0
+import { DIRTY_PATH_KEYS, DIRTY_PATHS, FLUSHING } from './utils/weak-maps'
 
 /**
  * Create a new Slate `Editor` object.
@@ -28,7 +25,6 @@ export const createEditor = (): Editor => {
     operations: [],
     selection: null,
     marks: null,
-    id: nextEditorId++,
     isInline: () => false,
     isVoid: () => false,
     markableVoid: () => false,
@@ -84,7 +80,9 @@ export const createEditor = (): Editor => {
       DIRTY_PATH_KEYS.set(editor, dirtyPathKeys)
       Transforms.transform(editor, op)
       editor.operations.push(op)
-      Editor.normalize(editor)
+      Editor.normalize(editor, {
+        operation: op,
+      })
 
       // Clear any formats applied to the cursor if the selection changes.
       if (op.type === 'set_selection') {
@@ -96,7 +94,7 @@ export const createEditor = (): Editor => {
 
         Promise.resolve().then(() => {
           FLUSHING.set(editor, false)
-          editor.onChange()
+          editor.onChange({ operation: op })
           editor.operations = []
         })
       }
@@ -211,7 +209,7 @@ export const createEditor = (): Editor => {
       }
     },
 
-    normalizeNode: (entry: NodeEntry) => {
+    normalizeNode: entry => {
       const [node, path] = entry
 
       // There are no core normalizations for text nodes.
@@ -414,6 +412,18 @@ export const createEditor = (): Editor => {
           return []
         }
       }
+    },
+
+    shouldNormalize: ({ iteration, initialDirtyPathsLength }) => {
+      const maxIterations = initialDirtyPathsLength * 42 // HACK: better way?
+
+      if (iteration > maxIterations) {
+        throw new Error(
+          `Could not completely normalize the editor after ${maxIterations} iterations! This is usually due to incorrect normalization logic that leaves a node in an invalid state.`
+        )
+      }
+
+      return true
     },
   }
 

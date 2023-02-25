@@ -17,28 +17,28 @@ import {
   Text,
 } from '..'
 import {
-  DIRTY_PATHS,
+  getCharacterDistance,
+  getWordDistance,
+  splitByCharacterDistance,
+} from '../utils/string'
+import {
   DIRTY_PATH_KEYS,
+  DIRTY_PATHS,
   NORMALIZING,
   PATH_REFS,
   POINT_REFS,
   RANGE_REFS,
 } from '../utils/weak-maps'
-import {
-  getWordDistance,
-  getCharacterDistance,
-  splitByCharacterDistance,
-} from '../utils/string'
-import { Descendant } from './node'
 import { Element } from './element'
+import { Descendant } from './node'
 import {
   LeafEdge,
+  MaximizeMode,
+  RangeDirection,
   SelectionMode,
   TextDirection,
   TextUnit,
   TextUnitAdjustment,
-  RangeDirection,
-  MaximizeMode,
 } from './types'
 
 export type BaseSelection = Range | null
@@ -57,14 +57,13 @@ export interface BaseEditor {
   selection: Selection
   operations: Operation[]
   marks: EditorMarks | null
-  readonly id: number
 
   // Schema-specific node behaviors.
   isInline: (element: Element) => boolean
   isVoid: (element: Element) => boolean
   markableVoid: (element: Element) => boolean
-  normalizeNode: (entry: NodeEntry) => void
-  onChange: () => void
+  normalizeNode: (entry: NodeEntry, options?: { operation?: Operation }) => void
+  onChange: (options?: { operation?: Operation }) => void
 
   // Overrideable core actions.
   addMark: (key: string, value: any) => void
@@ -79,7 +78,17 @@ export interface BaseEditor {
   insertNode: (node: Node) => void
   insertText: (text: string) => void
   removeMark: (key: string) => void
-  getDirtyPaths: (op: Operation) => Path[]
+  getDirtyPaths: (operation: Operation) => Path[]
+  shouldNormalize: ({
+    iteration,
+    dirtyPaths,
+    operation,
+  }: {
+    iteration: number
+    initialDirtyPathsLength: number
+    dirtyPaths: Path[]
+    operation?: Operation
+  }) => boolean
 }
 
 export type Editor = ExtendedType<'Editor', BaseEditor>
@@ -146,6 +155,7 @@ export interface EditorNodesOptions<T extends Node> {
 
 export interface EditorNormalizeOptions {
   force?: boolean
+  operation?: Operation
 }
 
 export interface EditorParentOptions {
@@ -243,15 +253,15 @@ export interface EditorInterface {
   insertFragment: (editor: Editor, fragment: Node[]) => void
   insertNode: (editor: Editor, node: Node) => void
   insertText: (editor: Editor, text: string) => void
-  isBlock: (editor: Editor, value: any) => value is Element
+  isBlock: (editor: Editor, value: Element) => boolean
   isEditor: (value: any) => value is Editor
   isEnd: (editor: Editor, point: Point, at: Location) => boolean
   isEdge: (editor: Editor, point: Point, at: Location) => boolean
   isEmpty: (editor: Editor, element: Element) => boolean
-  isInline: (editor: Editor, value: any) => value is Element
+  isInline: (editor: Editor, value: Element) => boolean
   isNormalizing: (editor: Editor) => boolean
   isStart: (editor: Editor, point: Point, at: Location) => boolean
-  isVoid: (editor: Editor, value: any) => value is Element
+  isVoid: (editor: Editor, value: Element) => boolean
   last: (editor: Editor, at: Location) => NodeEntry
   leaf: (
     editor: Editor,
@@ -530,7 +540,9 @@ export const Editor: EditorInterface = {
    */
 
   hasBlocks(editor: Editor, element: Element): boolean {
-    return element.children.some(n => Editor.isBlock(editor, n))
+    return element.children.some(
+      n => Element.isElement(n) && Editor.isBlock(editor, n)
+    )
   },
 
   /**
@@ -605,8 +617,8 @@ export const Editor: EditorInterface = {
    * Check if a value is a block `Element` object.
    */
 
-  isBlock(editor: Editor, value: any): value is Element {
-    return Element.isElement(value) && !editor.isInline(value)
+  isBlock(editor: Editor, value: Element): boolean {
+    return !editor.isInline(value)
   },
 
   /**
@@ -685,8 +697,8 @@ export const Editor: EditorInterface = {
    * Check if a value is an inline `Element` object.
    */
 
-  isInline(editor: Editor, value: any): value is Element {
-    return Element.isElement(value) && editor.isInline(value)
+  isInline(editor: Editor, value: Element): boolean {
+    return editor.isInline(value)
   },
 
   /**
@@ -716,8 +728,8 @@ export const Editor: EditorInterface = {
    * Check if a value is a void `Element` object.
    */
 
-  isVoid(editor: Editor, value: any): value is Element {
-    return Element.isElement(value) && editor.isVoid(value)
+  isVoid(editor: Editor, value: Element): boolean {
+    return editor.isVoid(value)
   },
 
   /**
@@ -772,7 +784,7 @@ export const Editor: EditorInterface = {
 
       levels.push([n, p])
 
-      if (!voids && Editor.isVoid(editor, n)) {
+      if (!voids && Element.isElement(n) && Editor.isVoid(editor, n)) {
         break
       }
     }
@@ -818,11 +830,14 @@ export const Editor: EditorInterface = {
     if (anchor.offset === 0) {
       const prev = Editor.previous(editor, { at: path, match: Text.isText })
       const markedVoid = Editor.above(editor, {
-        match: n => Editor.isVoid(editor, n) && editor.markableVoid(n),
+        match: n =>
+          Element.isElement(n) &&
+          Editor.isVoid(editor, n) &&
+          editor.markableVoid(n),
       })
       if (!markedVoid) {
         const block = Editor.above(editor, {
-          match: n => Editor.isBlock(editor, n),
+          match: n => Element.isElement(n) && Editor.isBlock(editor, n),
         })
 
         if (prev && block) {
@@ -936,7 +951,8 @@ export const Editor: EditorInterface = {
       reverse,
       from,
       to,
-      pass: ([n]) => (voids ? false : Editor.isVoid(editor, n)),
+      pass: ([n]) =>
+        voids ? false : Element.isElement(n) && Editor.isVoid(editor, n),
     })
 
     const matches: NodeEntry<T>[] = []
@@ -1002,7 +1018,7 @@ export const Editor: EditorInterface = {
    */
 
   normalize(editor: Editor, options: EditorNormalizeOptions = {}): void {
-    const { force = false } = options
+    const { force = false, operation } = options
     const getDirtyPaths = (editor: Editor) => {
       return DIRTY_PATHS.get(editor) || []
     }
@@ -1052,19 +1068,25 @@ export const Editor: EditorInterface = {
             by definition adding children to an empty node can't cause other paths to change.
           */
           if (Element.isElement(node) && node.children.length === 0) {
-            editor.normalizeNode(entry)
+            editor.normalizeNode(entry, { operation })
           }
         }
       }
 
-      const max = getDirtyPaths(editor).length * 42 // HACK: better way?
-      let m = 0
+      let dirtyPaths = getDirtyPaths(editor)
+      const initialDirtyPathsLength = dirtyPaths.length
+      let iteration = 0
 
-      while (getDirtyPaths(editor).length !== 0) {
-        if (m > max) {
-          throw new Error(`
-            Could not completely normalize the editor after ${max} iterations! This is usually due to incorrect normalization logic that leaves a node in an invalid state.
-          `)
+      while (dirtyPaths.length !== 0) {
+        if (
+          !editor.shouldNormalize({
+            dirtyPaths,
+            iteration,
+            initialDirtyPathsLength,
+            operation,
+          })
+        ) {
+          return
         }
 
         const dirtyPath = popDirtyPath(editor)
@@ -1072,9 +1094,10 @@ export const Editor: EditorInterface = {
         // If the node doesn't exist in the tree, it does not need to be normalized.
         if (Node.has(editor, dirtyPath)) {
           const entry = Editor.node(editor, dirtyPath)
-          editor.normalizeNode(entry)
+          editor.normalizeNode(entry, { operation })
         }
-        m++
+        iteration++
+        dirtyPaths = getDirtyPaths(editor)
       }
     })
   },
@@ -1649,7 +1672,7 @@ export const Editor: EditorInterface = {
 
     const endBlock = Editor.above(editor, {
       at: end,
-      match: n => Editor.isBlock(editor, n),
+      match: n => Element.isElement(n) && Editor.isBlock(editor, n),
       voids,
     })
     const blockPath = endBlock ? endBlock[1] : []
@@ -1687,7 +1710,7 @@ export const Editor: EditorInterface = {
   ): NodeEntry<Element> | undefined {
     return Editor.above(editor, {
       ...options,
-      match: n => Editor.isVoid(editor, n),
+      match: n => Element.isElement(n) && Editor.isVoid(editor, n),
     })
   },
 

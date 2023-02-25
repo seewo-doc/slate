@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { createEditor, Descendant } from 'slate'
-import { Slate, Editable, withReact } from 'slate-react'
+import { Slate, Editable, withReact } from '@seewo-doc/slate-react'
 
 const ReadOnlyExample = () => {
   const editor = useMemo(() => withReact(createEditor()), [])

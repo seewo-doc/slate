@@ -1,7 +1,13 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import isHotkey from 'is-hotkey'
-import { Editable, withReact, useSlate, Slate, ReactEditor } from 'slate-react'
+import {
+  Editable,
+  withReact,
+  useSlate,
+  Slate,
+  ReactEditor,
+} from '@seewo-doc/slate-react'
 import { Editor, createEditor, Descendant } from 'slate'
 import { withHistory } from 'slate-history'
 

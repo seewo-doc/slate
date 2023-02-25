@@ -10,7 +10,7 @@ import {
   useFocused,
   withReact,
   ReactEditor,
-} from 'slate-react'
+} from '@seewo-doc/slate-react'
 import { withHistory } from 'slate-history'
 import { css } from '@emotion/css'
 

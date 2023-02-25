@@ -9,7 +9,7 @@ import {
   withReact,
   useSelected,
   useFocused,
-} from 'slate-react'
+} from '@seewo-doc/slate-react'
 
 const ELEMENT_TAGS = {
   A: el => ({ type: 'link', url: el.getAttribute('href') }),

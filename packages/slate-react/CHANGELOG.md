@@ -1,5 +1,69 @@
 # slate-react
 
+## 0.91.5
+
+### Patch Changes
+
+- [#5313](https://github.com/ianstormtaylor/slate/pull/5313) [`3bf568ed`](https://github.com/ianstormtaylor/slate/commit/3bf568ede2a1df91ff4f88402e0cdd848848f2fb) Thanks [@edhager](https://github.com/edhager)! - Some code clean-up in Editable.
+
+* [#5306](https://github.com/ianstormtaylor/slate/pull/5306) [`213edbbf`](https://github.com/ianstormtaylor/slate/commit/213edbbf3abc407532aeda72e40d6f01d368c33c) Thanks [@clauderic](https://github.com/clauderic)! - Use memoization to avoid unnecessary `textContent` updates in `<TextString>` component.
+
+## 0.91.4
+
+### Patch Changes
+
+- [#5310](https://github.com/ianstormtaylor/slate/pull/5310) [`b94254d6`](https://github.com/ianstormtaylor/slate/commit/b94254d694c6ea6c88cacd661e7bd77165cd2607) Thanks [@etrepum](https://github.com/etrepum)! - Fix to ensure that the latest versions of onChange and renderPlaceholder are used
+
+## 0.91.3
+
+### Patch Changes
+
+- [#5305](https://github.com/ianstormtaylor/slate/pull/5305) [`11adbf96`](https://github.com/ianstormtaylor/slate/commit/11adbf966c764ffde866be38ada2d32e00105e48) Thanks [@alex-vladut](https://github.com/alex-vladut)! - Allow pasting plain text into editable voids
+
+## 0.91.2
+
+### Patch Changes
+
+- [#5297](https://github.com/ianstormtaylor/slate/pull/5297) [`967d99eb`](https://github.com/ianstormtaylor/slate/commit/967d99eb36df798ac3163c7d15a01e64fee0668c) Thanks [@edhager](https://github.com/edhager)! - Fix memory leaks by adding clean-up code that looks for ref resets in Editable and Text.
+
+## 0.91.1
+
+### Patch Changes
+
+- [#5251](https://github.com/ianstormtaylor/slate/pull/5251) [`6fa4b954`](https://github.com/ianstormtaylor/slate/commit/6fa4b954a5e4c67cff87d00b1253b2a838c0db94) Thanks [@YaoKaiLun](https://github.com/YaoKaiLun)! - Fix the cursor jump to an unexpected position after deleting in android
+
+## 0.91.0
+
+### Minor Changes
+
+- [#5267](https://github.com/ianstormtaylor/slate/pull/5267) [`463edbd2`](https://github.com/ianstormtaylor/slate/commit/463edbd27ed78a4b4a3d38886da4d9e3e8b8efd5) Thanks [@ilya2204](https://github.com/ilya2204)! - Allow to change clipboard fragment format name
+
+* [#5271](https://github.com/ianstormtaylor/slate/pull/5271) [`9635b992`](https://github.com/ianstormtaylor/slate/commit/9635b992a0d91cecd45e3b6a883a860f14bcaaea) Thanks [@dsvgit](https://github.com/dsvgit)! - If TextComponent decorations keep the same offsets and only paths are changed, prevent re-rendering because only decoration offsets matter when leaves are calculated.
+
+## 0.90.0
+
+### Minor Changes
+
+- [#5278](https://github.com/ianstormtaylor/slate/pull/5278) [`9c4097a2`](https://github.com/ianstormtaylor/slate/commit/9c4097a26fa92718e6f4fc1f984a70fb5af42ca2) Thanks [@kylemclean](https://github.com/kylemclean)! - Revert to using inline styles for default editor styles
+
+## 0.89.0
+
+### Minor Changes
+
+- [#5275](https://github.com/ianstormtaylor/slate/pull/5275) [`5bc69d8d`](https://github.com/ianstormtaylor/slate/commit/5bc69d8d657c57eef06aeaa1fa198840d36939c7) Thanks [@12joan](https://github.com/12joan)! - Firefox: fix wrong text highlighting with double-click
+
+### Patch Changes
+
+- [#5265](https://github.com/ianstormtaylor/slate/pull/5265) [`3cf51f4d`](https://github.com/ianstormtaylor/slate/commit/3cf51f4d88e8e91faa6ab5d1f2c5f8c8e505ae89) Thanks [@kylemclean](https://github.com/kylemclean)! - Improve compatibility for browsers that do not support ResizeObserver or :where selector
+
+## 0.88.2
+
+### Patch Changes
+
+- [#5259](https://github.com/ianstormtaylor/slate/pull/5259) [`d7de564d`](https://github.com/ianstormtaylor/slate/commit/d7de564d62848dd8e14535993083c5e9aa1bfacc) Thanks [@Jacfem](https://github.com/Jacfem)! - Updates the selection correctly in readonly shadowdom
+
+* [#5252](https://github.com/ianstormtaylor/slate/pull/5252) [`179d5c92`](https://github.com/ianstormtaylor/slate/commit/179d5c926eecfdb2b3d8a75c07cb89181c348ad1) Thanks [@frellica](https://github.com/frellica)! - remove qq browser from `beforeinput` compat list because it had updated its chromium core to version 94
+
 ## 0.88.0
 
 ### Minor Changes
