@@ -367,7 +367,7 @@ export function createAndroidInputManager({
         const closestElement = nativeTargetRange.startContainer.parentElement.closest(
           '[data-slate-node=element]'
         )
-        inVoidNode = closestElement?.attributes.hasOwnProperty(
+        inVoidNode = !!closestElement?.attributes.hasOwnProperty(
           'data-slate-void'
         )
       }
@@ -377,7 +377,16 @@ export function createAndroidInputManager({
     // have to manually get the selection here to ensure it's up-to-date.
     const window = ReactEditor.getWindow(editor)
     const domSelection = window.getSelection()
-    if (!targetRange && domSelection) {
+
+    // 通过非手动方式（比如删除）定位到卡片光标初时，getTargetRanges 获取到的值不正确
+    const forceUseDomSelection =
+      editor.selection &&
+      Range.isCollapsed(editor.selection) &&
+      editor.selection.focus.offset < 0 &&
+      nativeTargetRange &&
+      !nativeTargetRange.isCollapsed
+
+    if ((!targetRange || forceUseDomSelection) && domSelection) {
       nativeTargetRange = domSelection
       targetRange = ReactEditor.toSlateRange(editor, domSelection, {
         exactMatch: false,
@@ -581,6 +590,11 @@ export function createAndroidInputManager({
             start: start.offset,
             end: end.offset,
             text,
+          }
+
+          if (targetRange.anchor.offset < 0) {
+            Editor.insertText(editor, text)
+            return
           }
 
           // COMPAT: Swiftkey has a weird bug where the target range of the 2nd word
