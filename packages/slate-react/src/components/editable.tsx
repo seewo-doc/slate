@@ -129,6 +129,10 @@ export type EditableProps = {
  */
 
 export const Editable = (props: EditableProps) => {
+  const defaultRenderPlaceholder = useCallback(
+    (props: RenderPlaceholderProps) => <DefaultPlaceholder {...props} />,
+    []
+  )
   const {
     autoFocus,
     decorate = defaultDecorate,
@@ -137,7 +141,7 @@ export const Editable = (props: EditableProps) => {
     readOnly = false,
     renderElement,
     renderLeaf,
-    renderPlaceholder = props => <DefaultPlaceholder {...props} />,
+    renderPlaceholder = defaultRenderPlaceholder,
     scrollSelectionIntoView = defaultScrollSelectionIntoView,
     style: userStyle = {},
     as: Component = 'div',
@@ -701,6 +705,9 @@ export const Editable = (props: EditableProps) => {
   const callbackRef = useCallback(
     node => {
       if (node == null) {
+        onDOMSelectionChange.cancel()
+        scheduleOnDOMSelectionChange.cancel()
+
         EDITOR_TO_ELEMENT.delete(editor)
         NODE_TO_ELEMENT.delete(editor)
 
@@ -721,7 +728,7 @@ export const Editable = (props: EditableProps) => {
 
       ref.current = node
     },
-    [ref, onDOMBeforeInput]
+    [ref, onDOMBeforeInput, onDOMSelectionChange, scheduleOnDOMSelectionChange]
   )
 
   // Attach a native DOM event handler for `selectionchange`, because React's
@@ -894,7 +901,11 @@ export const Editable = (props: EditableProps) => {
               },
               [readOnly]
             )}
-            onInput={useCallback((event: React.SyntheticEvent) => {
+            onInput={useCallback((event: React.FormEvent<HTMLDivElement>) => {
+              if (isEventHandled(event, attributes.onInput)) {
+                return
+              }
+
               if (androidInputManager) {
                 androidInputManager.handleInput()
                 return
