@@ -31,26 +31,23 @@ export const createRestoreDomManager = (
   }
 
   function restoreDOM() {
-    if (bufferedMutations.length > 0) {
-      bufferedMutations.reverse().forEach(mutation => {
-        if (mutation.type === 'characterData') {
-          // We don't want to restore the DOM for characterData mutations
-          // because this interrupts the composition.
-          return
-        }
+    bufferedMutations.reverse().forEach(mutation => {
+      if (mutation.type === 'characterData') {
+        mutation.target.textContent = mutation.oldValue
+        return
+      }
 
-        mutation.removedNodes.forEach(node => {
-          mutation.target.insertBefore(node, mutation.nextSibling)
-        })
-
-        mutation.addedNodes.forEach(node => {
-          mutation.target.removeChild(node)
-        })
+      mutation.removedNodes.forEach(node => {
+        mutation.target.insertBefore(node, mutation.nextSibling)
       })
 
-      // Clear buffered mutations to ensure we don't undo them twice
-      clear()
-    }
+      mutation.addedNodes.forEach(node => {
+        mutation.target.removeChild(node)
+      })
+    })
+
+    // Clear buffered mutations to ensure we don't undo them twice
+    clear()
   }
 
   return {
