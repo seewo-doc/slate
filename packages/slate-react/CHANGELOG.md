@@ -1,5 +1,57 @@
 # slate-react
 
+## 0.94.2
+
+### Patch Changes
+
+- [#5423](https://github.com/ianstormtaylor/slate/pull/5423) [`042bca16`](https://github.com/ianstormtaylor/slate/commit/042bca167ac810acccae229bc905a49098aee546) Thanks [@horacioh](https://github.com/horacioh)! - fix placeholder position in Safari 16.x
+
+## 0.94.0
+
+### Patch Changes
+
+- [#5307](https://github.com/ianstormtaylor/slate/pull/5307) [`3243c7e3`](https://github.com/ianstormtaylor/slate/commit/3243c7e34ac2602618c67c88b1b7df07fde1c2ec) Thanks [@zbeyens](https://github.com/zbeyens)! - Interface methods JSDoc should now work on IDEs.
+
+## 0.93.0
+
+### Patch Changes
+
+- [#5383](https://github.com/ianstormtaylor/slate/pull/5383) [`3c3ea29a`](https://github.com/ianstormtaylor/slate/commit/3c3ea29a2d7c70bab3629f0f78ea28dca4058b53) Thanks [@12joan](https://github.com/12joan)! - Fix issue when tabbing into editor in Safari (https://github.com/udecode/plate/issues/2315)
+
+* [#5368](https://github.com/ianstormtaylor/slate/pull/5368) [`5a0d3974`](https://github.com/ianstormtaylor/slate/commit/5a0d3974d6cb2c099dff4c0976e9390d24c345ad) Thanks [@edhager](https://github.com/edhager)! - Delay rendering of placeholder to avoid IME hiding
+
+## 0.92.0
+
+### Minor Changes
+
+- [#5363](https://github.com/ianstormtaylor/slate/pull/5363) [`d42cd005`](https://github.com/ianstormtaylor/slate/commit/d42cd005db862165f5ac63fba4d35f36d92864f6) Thanks [@aciccarello](https://github.com/aciccarello)! - update dependencies on react hooks to be more senstive to changes
+
+  The code should now meet eslint react hook standards
+
+  This could result in more renders
+
+  closes #3886
+
+### Patch Changes
+
+- [#5369](https://github.com/ianstormtaylor/slate/pull/5369) [`556a4565`](https://github.com/ianstormtaylor/slate/commit/556a4565d2bb4a611d34bb30ecd9bac324664066) Thanks [@alex-vladut](https://github.com/alex-vladut)! - Allow copying from editable void input
+
+## 0.91.11
+
+### Patch Changes
+
+- [#5362](https://github.com/ianstormtaylor/slate/pull/5362) [`43999356`](https://github.com/ianstormtaylor/slate/commit/439993569001f8c5dc9e68194c198d430a4ef4bc) Thanks [@jason0x43](https://github.com/jason0x43)! - Fix an issue where pastes in Safari wouldn't include application/x-slate-fragment data
+
+* [#5359](https://github.com/ianstormtaylor/slate/pull/5359) [`9825d29b`](https://github.com/ianstormtaylor/slate/commit/9825d29b87ffff96b4cdfd7339028cc1a92c6f68) Thanks [@jason0x43](https://github.com/jason0x43)! - Fix an issue on Android where content containing a newline wouldn't be pasted properly
+
+## 0.91.10
+
+### Patch Changes
+
+- [#5346](https://github.com/ianstormtaylor/slate/pull/5346) [`a5e833f6`](https://github.com/ianstormtaylor/slate/commit/a5e833f6550a823689e593317f4579127d8a7fd7) Thanks [@edhager](https://github.com/edhager)! - Fix a problem with Editable not calling the decorate function passed as a prop when it should.
+
+* [#5343](https://github.com/ianstormtaylor/slate/pull/5343) [`f7f02a8b`](https://github.com/ianstormtaylor/slate/commit/f7f02a8b23f16a3f3103302343e3326549917892) Thanks [@12joan](https://github.com/12joan)! - Fix error when triple-clicking a word preceding a `contenteditable="false"` DOM node in Chrome
+
 ## 0.91.9
 
 ### Patch Changes
