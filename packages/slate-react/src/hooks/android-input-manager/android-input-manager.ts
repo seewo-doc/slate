@@ -365,6 +365,11 @@ export function createAndroidInputManager({
         suppressThrow: true,
       })
 
+      if (nativeTargetRange.startContainer.nodeType === globalThis.Node.TEXT_NODE) {
+        const closestVoidText = nativeTargetRange.startContainer.parentElement.closest('[data-slate-text-void=true]')
+        inVoidNode = !!closestVoidText
+      }
+
       if (
         nativeTargetRange.collapsed &&
         nativeTargetRange.startContainer.nodeType === globalThis.Node.TEXT_NODE
@@ -372,7 +377,7 @@ export function createAndroidInputManager({
         const closestElement = nativeTargetRange.startContainer.parentElement.closest(
           '[data-slate-node=element]'
         )
-        inVoidNode = !!closestElement?.attributes.hasOwnProperty(
+        inVoidNode = inVoidNode || !!closestElement?.attributes.hasOwnProperty(
           'data-slate-void'
         )
       }
