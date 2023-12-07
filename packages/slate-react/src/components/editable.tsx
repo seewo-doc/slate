@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { JSX } from 'react'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import {
   Editor,
@@ -46,7 +47,7 @@ import {
   IS_FIREFOX,
   IS_FIREFOX_LEGACY,
   IS_IOS,
-  IS_SAFARI,
+  IS_WEBKIT,
   IS_UC_MOBILE,
   IS_WECHATBROWSER,
 } from '../utils/environment'
@@ -305,12 +306,33 @@ export const Editable = (props: EditableProps) => {
         return
       }
 
+      // Get anchorNode and focusNode
+      const focusNode = domSelection.focusNode
+      let anchorNode
+
+      // COMPAT: In firefox the normal seletion way does not work
+      // (https://github.com/ianstormtaylor/slate/pull/5486#issue-1820720223)
+      if (IS_FIREFOX && domSelection.rangeCount > 1) {
+        const firstRange = domSelection.getRangeAt(0)
+        const lastRange = domSelection.getRangeAt(domSelection.rangeCount - 1)
+
+        // Right to left
+        if (firstRange.startContainer === focusNode) {
+          anchorNode = lastRange.endContainer
+        } else {
+          // Left to right
+          anchorNode = firstRange.startContainer
+        }
+      } else {
+        anchorNode = domSelection.anchorNode
+      }
+
       // verify that the dom selection is in the editor
       const editorElement = EDITOR_TO_ELEMENT.get(editor)!
       let hasDomSelectionInEditor = false
       if (
-        editorElement.contains(domSelection.anchorNode) &&
-        editorElement.contains(domSelection.focusNode)
+        editorElement.contains(anchorNode) &&
+        editorElement.contains(focusNode)
       ) {
         hasDomSelectionInEditor = true
       }
@@ -336,7 +358,6 @@ export const Editable = (props: EditableProps) => {
           }
 
           // Ensure selection is inside the mark placeholder
-          const { anchorNode } = domSelection
           if (
             anchorNode?.parentElement?.hasAttribute(
               'data-slate-mark-placeholder'
@@ -366,7 +387,9 @@ export const Editable = (props: EditableProps) => {
         selection && ReactEditor.toDOMRange(editor, selection)
 
       if (newDomRange) {
-        if (Range.isBackward(selection!)) {
+        if (ReactEditor.isComposing(editor) && !IS_ANDROID) {
+          domSelection.collapseToEnd()
+        } else if (Range.isBackward(selection!)) {
           domSelection.setBaseAndExtent(
             newDomRange.endContainer,
             newDomRange.endOffset,
@@ -389,19 +412,16 @@ export const Editable = (props: EditableProps) => {
       return newDomRange
     }
 
-    const newDomRange = setDomSelection()
+    // In firefox if there is more then 1 range and we call setDomSelection we remove the ability to select more cells in a table
+    if (domSelection.rangeCount <= 1) {
+      setDomSelection()
+    }
+
     const ensureSelection =
       androidInputManagerRef.current?.isFlushing() === 'action'
 
     if (!IS_ANDROID || !ensureSelection) {
       setTimeout(() => {
-        // COMPAT: In Firefox, it's not enough to create a range, you also need
-        // to focus the contenteditable element too. (2016/11/16)
-        if (newDomRange && IS_FIREFOX) {
-          const el = ReactEditor.toDOMNode(editor, editor)
-          el.focus()
-        }
-
         state.isUpdatingSelection = false
       })
       return
@@ -725,7 +745,7 @@ export const Editable = (props: EditableProps) => {
   )
 
   const callbackRef = useCallback(
-    node => {
+    (node: HTMLDivElement | null) => {
       if (node == null) {
         onDOMSelectionChange.cancel()
         scheduleOnDOMSelectionChange.cancel()
@@ -903,8 +923,6 @@ export const Editable = (props: EditableProps) => {
                 : {
                     // Allow positioning relative to the editable element.
                     position: 'relative',
-                    // Prevent the default outline styles.
-                    outline: 'none',
                     // Preserve adjacent whitespace and new lines.
                     whiteSpace: 'pre-wrap',
                     // Allow words to break if they are too long.
@@ -1016,7 +1034,7 @@ export const Editable = (props: EditableProps) => {
                 // COMPAT: Safari doesn't always remove the selection even if the content-
                 // editable element no longer has focus. Refer to:
                 // https://stackoverflow.com/questions/12353247/force-contenteditable-div-to-stop-accepting-input-after-it-loses-focus-under-web
-                if (IS_SAFARI) {
+                if (IS_WEBKIT) {
                   const domSelection = root.getSelection()
                   domSelection?.removeAllRanges()
                 }
@@ -1096,8 +1114,10 @@ export const Editable = (props: EditableProps) => {
               (event: React.CompositionEvent<HTMLDivElement>) => {
                 if (ReactEditor.hasSelectableTarget(editor, event.target)) {
                   if (ReactEditor.isComposing(editor)) {
-                    setIsComposing(false)
-                    IS_COMPOSING.set(editor, false)
+                    Promise.resolve(() => {
+                      setIsComposing(false)
+                      IS_COMPOSING.set(editor, false)
+                    })
                   }
 
                   androidInputManagerRef.current?.handleCompositionEnd(event)
@@ -1114,16 +1134,15 @@ export const Editable = (props: EditableProps) => {
                   // type that we need. So instead, insert whenever a composition
                   // ends since it will already have been committed to the DOM.
                   if (
-                    !IS_SAFARI &&
+                    !IS_WEBKIT &&
                     !IS_FIREFOX_LEGACY &&
                     !IS_IOS &&
                     !IS_WECHATBROWSER &&
                     !IS_UC_MOBILE &&
                     event.data
                   ) {
-                    const placeholderMarks = EDITOR_TO_PENDING_INSERTION_MARKS.get(
-                      editor
-                    )
+                    const placeholderMarks =
+                      EDITOR_TO_PENDING_INSERTION_MARKS.get(editor)
                     EDITOR_TO_PENDING_INSERTION_MARKS.delete(editor)
 
                     // Ensure we insert text with the marks the user was actually seeing
@@ -1484,7 +1503,9 @@ export const Editable = (props: EditableProps) => {
                     if (selection && Range.isCollapsed(selection)) {
                       Transforms.move(editor, { reverse: !isRTL })
                     } else {
-                      Transforms.collapse(editor, { edge: 'start' })
+                      Transforms.collapse(editor, {
+                        edge: isRTL ? 'end' : 'start',
+                      })
                     }
 
                     return
@@ -1496,7 +1517,9 @@ export const Editable = (props: EditableProps) => {
                     if (selection && Range.isCollapsed(selection)) {
                       Transforms.move(editor, { reverse: isRTL })
                     } else {
-                      Transforms.collapse(editor, { edge: 'end' })
+                      Transforms.collapse(editor, {
+                        edge: isRTL ? 'start' : 'end',
+                      })
                     }
 
                     return
@@ -1623,7 +1646,7 @@ export const Editable = (props: EditableProps) => {
                       return
                     }
                   } else {
-                    if (IS_CHROME || IS_SAFARI) {
+                    if (IS_CHROME || IS_WEBKIT) {
                       // COMPAT: Chrome and Safari support `beforeinput` event but do not fire
                       // an event when deleting backwards in a selected void inline node
                       if (
@@ -1672,7 +1695,7 @@ export const Editable = (props: EditableProps) => {
                   if (
                     !HAS_BEFORE_INPUT_SUPPORT ||
                     isPlainTextOnlyPaste(event.nativeEvent) ||
-                    IS_SAFARI
+                    IS_WEBKIT
                   ) {
                     event.preventDefault()
                     ReactEditor.insertData(editor, event.clipboardData)
@@ -1764,7 +1787,7 @@ const defaultScrollSelectionIntoView = (
  */
 
 export const isEventHandled = <
-  EventType extends React.SyntheticEvent<unknown, unknown>
+  EventType extends React.SyntheticEvent<unknown, unknown>,
 >(
   event: EventType,
   handler?: (event: EventType) => void | boolean
@@ -1787,7 +1810,7 @@ export const isEventHandled = <
  * Check if the event's target is an input element
  */
 export const isDOMEventTargetInput = <
-  EventType extends React.SyntheticEvent<unknown, unknown>
+  EventType extends React.SyntheticEvent<unknown, unknown>,
 >(
   event: EventType
 ) => {

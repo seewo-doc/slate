@@ -6,6 +6,7 @@ import {
   Node,
   Operation,
   Path,
+  PathRef,
   Point,
   Range,
   Transforms,
@@ -36,6 +37,7 @@ import {
   NODE_TO_KEY,
 } from '../utils/weak-maps'
 import { ReactEditor } from './react-editor'
+import { REACT_MAJOR_VERSION } from '../utils/environment'
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -121,6 +123,7 @@ export const withReact = <T extends BaseEditor>(
   // as apply() changes the object reference and hence invalidates the NODE_TO_KEY entry
   e.apply = (op: Operation) => {
     const matches: [Path, Key][] = []
+    const pathRefMatches: [PathRef, Key][] = []
 
     const pendingDiffs = EDITOR_TO_PENDING_DIFFS.get(e)
     if (pendingDiffs?.length) {
@@ -182,6 +185,21 @@ export const withReact = <T extends BaseEditor>(
           Path.parent(op.newPath)
         )
         matches.push(...getMatches(e, commonPath))
+
+        let changedPath: Path
+        if (Path.isBefore(op.path, op.newPath)) {
+          matches.push(...getMatches(e, Path.parent(op.path)))
+          changedPath = op.newPath
+        } else {
+          matches.push(...getMatches(e, Path.parent(op.newPath)))
+          changedPath = op.path
+        }
+
+        const changedNode = Node.get(editor, Path.parent(changedPath))
+        const changedNodeKey = ReactEditor.findKey(e, changedNode)
+        const changedPathRef = Editor.pathRef(e, Path.parent(changedPath))
+        pathRefMatches.push([changedPathRef, changedNodeKey])
+
         break
       }
     }
@@ -191,6 +209,13 @@ export const withReact = <T extends BaseEditor>(
     for (const [path, key] of matches) {
       const [node] = Editor.node(e, path)
       NODE_TO_KEY.set(node, key)
+    }
+
+    for (const [pathRef, key] of pathRefMatches) {
+      if (pathRef.current) {
+        const [node] = Editor.node(e, pathRef.current)
+        NODE_TO_KEY.set(node, key)
+      }
     }
   }
 
@@ -324,15 +349,21 @@ export const withReact = <T extends BaseEditor>(
   }
 
   e.onChange = options => {
-    // COMPAT: React doesn't batch `setState` hook calls, which means that the
-    // children and selection can get out of sync for one render pass. So we
-    // have to use this unstable API to ensure it batches them. (2019/12/03)
+    // COMPAT: React < 18 doesn't batch `setState` hook calls, which means
+    // that the children and selection can get out of sync for one render
+    // pass. So we have to use this unstable API to ensure it batches them.
+    // (2019/12/03)
     // https://github.com/facebook/react/issues/14259#issuecomment-439702367
-    ReactDOM.unstable_batchedUpdates(() => {
+    const maybeBatchUpdates =
+      REACT_MAJOR_VERSION < 18
+        ? ReactDOM.unstable_batchedUpdates
+        : (callback: () => void) => callback()
+
+    maybeBatchUpdates(() => {
       const onContextChange = EDITOR_TO_ON_CHANGE.get(e)
 
       if (onContextChange) {
-        onContextChange()
+        onContextChange(options)
       }
 
       onChange(options)

@@ -5,6 +5,7 @@ import React, {
   useState,
   useEffect,
 } from 'react'
+import { JSX } from 'react'
 import { Element, Text } from 'slate'
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer'
 import String from './string'
@@ -15,7 +16,11 @@ import {
 } from '../utils/weak-maps'
 import { RenderLeafProps, RenderPlaceholderProps } from './editable'
 import { useSlateStatic } from '../hooks/use-slate-static'
-import { IS_SAFARI } from '../utils/environment'
+import { IS_WEBKIT, IS_ANDROID } from '../utils/environment'
+
+// Delay the placeholder on Android to prevent the keyboard from closing.
+// (https://github.com/ianstormtaylor/slate/pull/5368)
+const PLACEHOLDER_DELAY = IS_ANDROID ? 300 : 0
 
 function disconnectPlaceholderResizeObserver(
   placeholderResizeObserver: MutableRefObject<ResizeObserver | null>,
@@ -95,15 +100,15 @@ const Leaf = (props: {
     <String isLast={isLast} leaf={leaf} parent={parent} text={text} />
   )
 
-  const leafIsPlaceholder = leaf[PLACEHOLDER_SYMBOL]
+  const leafIsPlaceholder = Boolean(leaf[PLACEHOLDER_SYMBOL])
   useEffect(() => {
     if (leafIsPlaceholder) {
       if (!showPlaceholderTimeoutRef.current) {
-        // Delay the placeholder so it will not render in a selection
+        // Delay the placeholder, so it will not render in a selection
         showPlaceholderTimeoutRef.current = setTimeout(() => {
           setShowPlaceholder(true)
           showPlaceholderTimeoutRef.current = null
-        }, 300)
+        }, PLACEHOLDER_DELAY)
       }
     } else {
       clearTimeoutRef(showPlaceholderTimeoutRef)
@@ -128,7 +133,7 @@ const Leaf = (props: {
           userSelect: 'none',
           textDecoration: 'none',
           // Fixes https://github.com/udecode/plate/issues/2315
-          WebkitUserModify: IS_SAFARI ? 'inherit' : undefined,
+          WebkitUserModify: IS_WEBKIT ? 'inherit' : undefined,
         },
         contentEditable: false,
         ref: callbackPlaceholderRef,

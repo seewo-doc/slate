@@ -1,5 +1,133 @@
 # slate-react
 
+## 0.101.3
+
+### Patch Changes
+
+- [#5576](https://github.com/ianstormtaylor/slate/pull/5576) [`8ce52fd4`](https://github.com/ianstormtaylor/slate/commit/8ce52fd494c5156c8f08841b972bc5eda2817c03) Thanks [@qirong77](https://github.com/qirong77)! - fix onCompositionEnd update error.
+
+## 0.101.2
+
+### Patch Changes
+
+- [#5567](https://github.com/ianstormtaylor/slate/pull/5567) [`07f59e36`](https://github.com/ianstormtaylor/slate/commit/07f59e36071bae2b9c09b787f1dd514c6bf859a4) Thanks [@timagixe](https://github.com/timagixe)! - Fix cursor position on selection collapse for RTL direction
+
+## 0.101.1
+
+### Patch Changes
+
+- [#5564](https://github.com/ianstormtaylor/slate/pull/5564) [`9aa573e9`](https://github.com/ianstormtaylor/slate/commit/9aa573e9b8b2aff0c702fc6efa622e71db7759f1) Thanks [@12joan](https://github.com/12joan)! - Apply 300ms placeholder delay only on Android devices
+
+## 0.101.0
+
+### Minor Changes
+
+- [#5527](https://github.com/ianstormtaylor/slate/pull/5527) [`fc081816`](https://github.com/ianstormtaylor/slate/commit/fc081816e08ade6838d05a96f84088de9f2734ce) Thanks [@skogsmaskin](https://github.com/skogsmaskin)! - Fixes a bug with `ReactEditor.focus` where it would throw an error if the editor was in the middle of applying pending operations.
+  With this change, setting focus will be retried until the editor no longer has any pending operations.
+  Calling `ReactEditor.focus` on a editor without a current selection, will now make a selection in the top of the document.
+
+### Patch Changes
+
+- [#5549](https://github.com/ianstormtaylor/slate/pull/5549) [`f9cca97f`](https://github.com/ianstormtaylor/slate/commit/f9cca97f00e4b7827f7056cd7f1644345a4be953) Thanks [@12joan](https://github.com/12joan)! - Firefox compat: Fix incorrect focus.offset when text node ends with \n
+
+- [#5556](https://github.com/ianstormtaylor/slate/pull/5556) [`22495e14`](https://github.com/ianstormtaylor/slate/commit/22495e143d81fd602ff3efa0b5f6339a4b05b6c0) Thanks [@dylans](https://github.com/dylans)! - Revert #5542
+
+## 0.100.1
+
+### Patch Changes
+
+- [#5542](https://github.com/ianstormtaylor/slate/pull/5542) [`8688ed5c`](https://github.com/ianstormtaylor/slate/commit/8688ed5c680069c4277d8b575b79fe525737935d) Thanks [@hellsan631](https://github.com/hellsan631)! - Fix Memory Leak when switching between focused editables
+
+## 0.100.0
+
+### Minor Changes
+
+- [#5526](https://github.com/ianstormtaylor/slate/pull/5526) [`623f4452`](https://github.com/ianstormtaylor/slate/commit/623f44521ee95be38c53b6def456ed8c5f16e14b) Thanks [@jkcs](https://github.com/jkcs)! - Add `onSelectionChange` and `onValueChange` in Slate React component
+
+- [#5528](https://github.com/ianstormtaylor/slate/pull/5528) [`c4c14882`](https://github.com/ianstormtaylor/slate/commit/c4c14882edf13828f6583a88e50754ce63583bd7) Thanks [@dylans](https://github.com/dylans)! - Update dependencies to React 18, Node 20, TS 5.2, etc.
+
+## 0.99.0
+
+### Minor Changes
+
+- [#5516](https://github.com/ianstormtaylor/slate/pull/5516) [`300dc57a`](https://github.com/ianstormtaylor/slate/commit/300dc57a00c6437519ae0044384811efec653758) Thanks [@josephmr](https://github.com/josephmr)! - Retain editor selection when using ReactEditor.focus()
+
+### Patch Changes
+
+- [#5514](https://github.com/ianstormtaylor/slate/pull/5514) [`ff7db221`](https://github.com/ianstormtaylor/slate/commit/ff7db221205014605464628d18e41f1310bcead9) Thanks [@YaoKaiLun](https://github.com/YaoKaiLun)! - Fix move_node triggers nodes re-render
+
+## 0.98.4
+
+### Patch Changes
+
+- [#5510](https://github.com/ianstormtaylor/slate/pull/5510) [`13c7d271`](https://github.com/ianstormtaylor/slate/commit/13c7d271e35406a2497e78ef114417ad17796c65) Thanks [@e1himself](https://github.com/e1himself)! - Remove an unused React ref
+
+## 0.98.3
+
+### Patch Changes
+
+- [#5503](https://github.com/ianstormtaylor/slate/pull/5503) [`e308cd66`](https://github.com/ianstormtaylor/slate/commit/e308cd664d381ba1cd37f423445f189b9b5e4d1d) Thanks [@janpaepke](https://github.com/janpaepke)! - bugfix: slate breaks on load on safari < 16.4
+
+## 0.98.2
+
+### Patch Changes
+
+- [#5497](https://github.com/ianstormtaylor/slate/pull/5497) [`76ba3759`](https://github.com/ianstormtaylor/slate/commit/76ba3759838fd538587fda2f4027f7c74ff09589) Thanks [@Dimitri-WEI-Lingfeng](https://github.com/Dimitri-WEI-Lingfeng)! - fix the bug that user cannot input chinese on mac wechat browser.
+
+## 0.98.1
+
+### Patch Changes
+
+- [#5491](https://github.com/ianstormtaylor/slate/pull/5491) [`a5576e56`](https://github.com/ianstormtaylor/slate/commit/a5576e56a73f061972775953f270b34081a5cad8) Thanks [@WcaleNieWolny](https://github.com/WcaleNieWolny)! - Fix firefox table selection if table is contentedtiable
+
+## 0.98.0
+
+### Minor Changes
+
+- [#5486](https://github.com/ianstormtaylor/slate/pull/5486) [`8b548fb5`](https://github.com/ianstormtaylor/slate/commit/8b548fb53af861e1f391f2d5c052e3279f0a0b6c) Thanks [@WcaleNieWolny](https://github.com/WcaleNieWolny)! - Fix invalid usage of the selection API in firefox
+
+## 0.97.2
+
+### Patch Changes
+
+- [#5462](https://github.com/ianstormtaylor/slate/pull/5462) [`a6b606d8`](https://github.com/ianstormtaylor/slate/commit/a6b606d804795d9b134784a35e3b00ac77f3ebbc) Thanks [@Ben-Wormald](https://github.com/Ben-Wormald)! - Update hotkeys util to use isHotkey for better support for non-latin keyboards
+
+* [#5470](https://github.com/ianstormtaylor/slate/pull/5470) [`4bd15ed3`](https://github.com/ianstormtaylor/slate/commit/4bd15ed3950e3a0871f5d0ecb391bb637c05e59d) Thanks [@josephmr](https://github.com/josephmr)! - Fix Android caret placement regression when inputting into empty editor
+
+## 0.97.1
+
+### Patch Changes
+
+- [#5460](https://github.com/ianstormtaylor/slate/pull/5460) [`53395449`](https://github.com/ianstormtaylor/slate/commit/53395449e5b03fde5c0521203ef044064f3c159e) Thanks [@12joan](https://github.com/12joan)! - Do not attempt to batch updates manually in React >= 18
+
+## 0.97.0
+
+### Minor Changes
+
+- [#5451](https://github.com/ianstormtaylor/slate/pull/5451) [`12ff246e`](https://github.com/ianstormtaylor/slate/commit/12ff246e101bb7ae51248066c07c378ee4be9220) Thanks [@gtluszcz](https://github.com/gtluszcz)! - Fixed occasional crashes when selecting void elements in Chrome
+
+### Patch Changes
+
+- [#5453](https://github.com/ianstormtaylor/slate/pull/5453) [`cde0a155`](https://github.com/ianstormtaylor/slate/commit/cde0a155e23d015d4ee72f9f10f63b67e878668e) Thanks [@Shiba-ligo](https://github.com/Shiba-ligo)! - fix regular expression for testing Webkit based browser.
+
+## 0.96.0
+
+### Minor Changes
+
+- [#5437](https://github.com/ianstormtaylor/slate/pull/5437) [`3ad13d60`](https://github.com/ianstormtaylor/slate/commit/3ad13d601550341688cc75466a75b616d8232154) Thanks [@josephmr](https://github.com/josephmr)! - Detect all WebKit based browsers for COMPAT behavior
+
+### Patch Changes
+
+- [#5443](https://github.com/ianstormtaylor/slate/pull/5443) [`eb7f5987`](https://github.com/ianstormtaylor/slate/commit/eb7f598707ab9a4f1bd62fd195719049e9536be0) Thanks [@OldDream](https://github.com/OldDream)! - fix wrong caret position during composition.
+
+## 0.95.0
+
+### Minor Changes
+
+- [#5422](https://github.com/ianstormtaylor/slate/pull/5422) [`0b179909`](https://github.com/ianstormtaylor/slate/commit/0b1799091a6800c7e868d5a6148b82648cbe8270) Thanks [@Chudesnov](https://github.com/Chudesnov)! - Prevents default focus styles from being removed in Editable
+
+* [#5421](https://github.com/ianstormtaylor/slate/pull/5421) [`91e388ec`](https://github.com/ianstormtaylor/slate/commit/91e388ecd9e6a540b4a651978436f196f38f667d) Thanks [@e1himself](https://github.com/e1himself)! - Rename `<Slate>` component prop from `value` to `initialValue` to emphasize uncontrolled nature of it
+
 ## 0.94.2
 
 ### Patch Changes

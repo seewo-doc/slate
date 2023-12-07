@@ -1,7 +1,6 @@
 import React from 'react'
 
-export const IS_REACT_VERSION_17_OR_ABOVE =
-  parseInt(React.version.split('.')[0], 10) >= 17
+export const REACT_MAJOR_VERSION = parseInt(React.version.split('.')[0], 10)
 
 export const IS_IOS =
   typeof navigator !== 'undefined' &&
@@ -19,9 +18,9 @@ export const IS_FIREFOX =
   typeof navigator !== 'undefined' &&
   /^(?!.*Seamonkey)(?=.*Firefox).*/i.test(navigator.userAgent)
 
-export const IS_SAFARI =
+export const IS_WEBKIT =
   typeof navigator !== 'undefined' &&
-  /Version\/[\d\.]+.*Safari/.test(navigator.userAgent)
+  /AppleWebKit(?!.*Chrome)/i.test(navigator.userAgent)
 
 // "modern" Edge was released at 79.x
 export const IS_EDGE_LEGACY =
@@ -53,9 +52,11 @@ export const IS_FIREFOX_LEGACY =
 export const IS_UC_MOBILE =
   typeof navigator !== 'undefined' && /.*UCBrowser/.test(navigator.userAgent)
 
-// Wechat browser
+// Wechat browser (not including mac wechat)
 export const IS_WECHATBROWSER =
-  typeof navigator !== 'undefined' && /.*Wechat/.test(navigator.userAgent)
+  typeof navigator !== 'undefined' &&
+  /.*Wechat/.test(navigator.userAgent) &&
+  !/.*MacWechat/.test(navigator.userAgent) // avoid lookbehind (buggy in safari < 16.4)
 
 // Check if DOM is available as React does internally.
 // https://github.com/facebook/react/blob/master/packages/shared/ExecutionEnvironment.js

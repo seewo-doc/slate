@@ -117,7 +117,7 @@ export interface ReactEditorInterface {
   /**
    * Focus the editor.
    */
-  focus: (editor: ReactEditor) => void
+  focus: (editor: ReactEditor, options?: { retries: number }) => void
 
   /**
    * Return the host window of the current editor.
@@ -411,13 +411,44 @@ export const ReactEditor: ReactEditorInterface = {
     )
   },
 
-  focus: editor => {
+  focus: (editor, options = { retries: 5 }) => {
+    // Return if already focused
+    if (IS_FOCUSED.get(editor)) {
+      return
+    }
+
+    // Retry setting focus if the editor has pending operations.
+    // The DOM (selection) is unstable while changes are applied.
+    // Retry until retries are exhausted or editor is focused.
+    if (options.retries <= 0) {
+      throw new Error(
+        'Could not set focus, editor seems stuck with pending operations'
+      )
+    }
+    if (editor.operations.length > 0) {
+      setTimeout(() => {
+        ReactEditor.focus(editor, { retries: options.retries - 1 })
+      }, 10)
+      return
+    }
+
     const el = ReactEditor.toDOMNode(editor, editor)
     const root = ReactEditor.findDocumentOrShadowRoot(editor)
-    IS_FOCUSED.set(editor, true)
-
     if (root.activeElement !== el) {
+      // Ensure that the DOM selection state is set to the editor's selection
+      if (editor.selection && root instanceof Document) {
+        const domSelection = root.getSelection()
+        const domRange = ReactEditor.toDOMRange(editor, editor.selection)
+        domSelection?.removeAllRanges()
+        domSelection?.addRange(domRange)
+      }
+      // Create a new selection in the top of the document if missing
+      if (!editor.selection) {
+        Transforms.select(editor, Editor.start(editor, []))
+        editor.onChange()
+      }
       el.focus({ preventScroll: true })
+      IS_FOCUSED.set(editor, true)
     }
   },
 
@@ -439,11 +470,12 @@ export const ReactEditor: ReactEditorInterface = {
     // stepper arrow on a number input). (2018/05/04)
     // https://github.com/ianstormtaylor/slate/issues/1819
     try {
-      targetEl = (isDOMElement(target)
-        ? target
-        : target.parentElement) as HTMLElement
+      targetEl = (
+        isDOMElement(target) ? target : target.parentElement
+      ) as HTMLElement
     } catch (err) {
       if (
+        err instanceof Error &&
         !err.message.includes('Permission denied to access property "nodeType"')
       ) {
         throw err
@@ -614,13 +646,13 @@ export const ReactEditor: ReactEditorInterface = {
     // A slate Point at zero-width Leaf always has an offset of 0 but a native DOM selection at
     // zero-width node has an offset of 1 so we have to check if we are in a zero-width node and
     // adjust the offset accordingly.
-    const startEl = (isDOMElement(startNode)
-      ? startNode
-      : startNode.parentElement) as HTMLElement
+    const startEl = (
+      isDOMElement(startNode) ? startNode : startNode.parentElement
+    ) as HTMLElement
     const isStartAtZeroWidth = !!startEl.getAttribute('data-slate-zero-width')
-    const endEl = (isDOMElement(endNode)
-      ? endNode
-      : endNode.parentElement) as HTMLElement
+    const endEl = (
+      isDOMElement(endNode) ? endNode : endNode.parentElement
+    ) as HTMLElement
     const isEndAtZeroWidth = !!endEl.getAttribute('data-slate-zero-width')
 
     domRange.setStart(startNode, isStartAtZeroWidth ? 1 : startOffset)
@@ -829,15 +861,87 @@ export const ReactEditor: ReactEditorInterface = {
 
     if (el) {
       if (isDOMSelection(domRange)) {
-        anchorNode = domRange.anchorNode
-        anchorOffset = domRange.anchorOffset
-        focusNode = domRange.focusNode
-        focusOffset = domRange.focusOffset
+        // COMPAT: In firefox the normal seletion way does not work
+        // (https://github.com/ianstormtaylor/slate/pull/5486#issue-1820720223)
+        if (IS_FIREFOX && domRange.rangeCount > 1) {
+          focusNode = domRange.focusNode // Focus node works fine
+          const firstRange = domRange.getRangeAt(0)
+          const lastRange = domRange.getRangeAt(domRange.rangeCount - 1)
+
+          // Here we are in the contenteditable mode of a table in firefox
+          if (
+            focusNode instanceof HTMLTableRowElement &&
+            firstRange.startContainer instanceof HTMLTableRowElement &&
+            lastRange.startContainer instanceof HTMLTableRowElement
+          ) {
+            // HTMLElement, becouse Element is a slate element
+            function getLastChildren(element: HTMLElement): HTMLElement {
+              if (element.childElementCount > 0) {
+                return getLastChildren(<HTMLElement>element.children[0])
+              } else {
+                return element
+              }
+            }
+
+            const firstNodeRow = <HTMLTableRowElement>firstRange.startContainer
+            const lastNodeRow = <HTMLTableRowElement>lastRange.startContainer
+
+            // This should never fail as "The HTMLElement interface represents any HTML element."
+            const firstNode = getLastChildren(
+              <HTMLElement>firstNodeRow.children[firstRange.startOffset]
+            )
+            const lastNode = getLastChildren(
+              <HTMLElement>lastNodeRow.children[lastRange.startOffset]
+            )
+
+            // Zero, as we allways take the right one as the anchor point
+            focusOffset = 0
+
+            if (lastNode.childNodes.length > 0) {
+              anchorNode = lastNode.childNodes[0]
+            } else {
+              anchorNode = lastNode
+            }
+
+            if (firstNode.childNodes.length > 0) {
+              focusNode = firstNode.childNodes[0]
+            } else {
+              focusNode = firstNode
+            }
+
+            if (lastNode instanceof HTMLElement) {
+              anchorOffset = (<HTMLElement>lastNode).innerHTML.length
+            } else {
+              // Fallback option
+              anchorOffset = 0
+            }
+          } else {
+            // This is the read only mode of a firefox table
+            // Right to left
+            if (firstRange.startContainer === focusNode) {
+              anchorNode = lastRange.endContainer
+              anchorOffset = lastRange.endOffset
+              focusOffset = firstRange.startOffset
+            } else {
+              // Left to right
+              anchorNode = firstRange.startContainer
+              anchorOffset = firstRange.endOffset
+              focusOffset = lastRange.startOffset
+            }
+          }
+        } else {
+          anchorNode = domRange.anchorNode
+          anchorOffset = domRange.anchorOffset
+          focusNode = domRange.focusNode
+          focusOffset = domRange.focusOffset
+        }
+
         // COMPAT: There's a bug in chrome that always returns `true` for
         // `isCollapsed` for a Selection that comes from a ShadowRoot.
         // (2020/08/08)
         // https://bugs.chromium.org/p/chromium/issues/detail?id=447523
-        if (IS_CHROME && hasShadowRoot(anchorNode)) {
+        // IsCollapsed might not work in firefox, but this will
+        if ((IS_CHROME && hasShadowRoot(anchorNode)) || IS_FIREFOX) {
           isCollapsed =
             domRange.anchorNode === domRange.focusNode &&
             domRange.anchorOffset === domRange.focusOffset
@@ -864,26 +968,42 @@ export const ReactEditor: ReactEditorInterface = {
       )
     }
 
+    // COMPAT: Firefox sometimes includes an extra \n (rendered by TextString
+    // when isTrailing is true) in the focusOffset, resulting in an invalid
+    // Slate point. (2023/11/01)
+    if (
+      IS_FIREFOX &&
+      focusNode.textContent?.endsWith('\n\n') &&
+      focusOffset === focusNode.textContent.length
+    ) {
+      focusOffset--
+    }
+
     // COMPAT: Triple-clicking a word in chrome will sometimes place the focus
     // inside a `contenteditable="false"` DOM node following the word, which
     // will cause `toSlatePoint` to throw an error. (2023/03/07)
     if (
       'getAttribute' in focusNode &&
-      (focusNode as HTMLElement).getAttribute('contenteditable') === 'false'
+      (focusNode as HTMLElement).getAttribute('contenteditable') === 'false' &&
+      (focusNode as HTMLElement).getAttribute('data-slate-void') !== 'true'
     ) {
       focusNode = anchorNode
       focusOffset = anchorNode.textContent?.length || 0
     }
 
-    let anchor = ReactEditor.toSlatePoint(editor, [anchorNode, anchorOffset], {
-      exactMatch,
-      suppressThrow,
-    })
+    const anchor = ReactEditor.toSlatePoint(
+      editor,
+      [anchorNode, anchorOffset],
+      {
+        exactMatch,
+        suppressThrow,
+      }
+    )
     if (!anchor) {
       return null as T extends true ? Range | null : Range
     }
 
-    let focus = isCollapsed
+    const focus = isCollapsed
       ? anchor
       : ReactEditor.toSlatePoint(editor, [focusNode, focusOffset], {
           exactMatch,
@@ -891,46 +1011,6 @@ export const ReactEditor: ReactEditorInterface = {
         })
     if (!focus) {
       return null as T extends true ? Range | null : Range
-    }
-
-    /**
-     * suppose we have this document:
-     *
-     * { type: 'paragraph',
-     *   children: [
-     *     { text: 'foo ' },
-     *     { text: 'bar' },
-     *     { text: ' baz' }
-     *   ]
-     * }
-     *
-     * a double click on "bar" on chrome will create this range:
-     *
-     * anchor -> [0,1] offset 0
-     * focus  -> [0,1] offset 3
-     *
-     * while on firefox will create this range:
-     *
-     * anchor -> [0,0] offset 4
-     * focus  -> [0,2] offset 0
-     *
-     * let's try to fix it...
-     */
-
-    if (IS_FIREFOX && !isCollapsed && anchorNode !== focusNode) {
-      const isEnd = Editor.isEnd(editor, anchor!, anchor.path)
-      const isStart = Editor.isStart(editor, focus!, focus.path)
-
-      if (isEnd) {
-        const after = Editor.after(editor, anchor as Point)
-        // Editor.after() might return undefined
-        anchor = (after || anchor!) as T extends true ? Point | null : Point
-      }
-
-      if (isStart) {
-        const before = Editor.before(editor, focus as Point)
-        focus = (before || focus!) as T extends true ? Point | null : Point
-      }
     }
 
     let range: Range = { anchor: anchor as Point, focus: focus as Point }
@@ -947,6 +1027,6 @@ export const ReactEditor: ReactEditorInterface = {
       range = Editor.unhangRange(editor, range, { voids: true })
     }
 
-    return (range as unknown) as T extends true ? Range | null : Range
+    return range as unknown as T extends true ? Range | null : Range
   },
 }
